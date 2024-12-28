@@ -98,7 +98,6 @@ python SMA.py
 ### Additional Notes
 
 - If you encounter any issues during installation, please refer to the [troubleshooting section](#troubleshooting) or raise an issue on the GitHub repository.
-- For detailed usage instructions, please refer to the [documentation](docs/documentation.md).
 
 ## Contributing
 
