@@ -107,3 +107,11 @@ We welcome contributions from the community! If you would like to contribute, pl
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+## Legal Notice
+
+This project uses the following technologies:
+- **PEAQ (Perceptual Evaluation of Audio Quality)**: PEAQ is an international standard for evaluating audio quality. Please ensure you have the appropriate licenses if you plan to use this technology beyond non-commercial purposes.
+- **LUFS (Loudness Units Full Scale)**: LUFS measures the perceived loudness of audio signals. This method is freely usable, but please adhere to relevant standards and guidelines.
+
+For further information, please consult the respective documentation and licensing information for each technology.
