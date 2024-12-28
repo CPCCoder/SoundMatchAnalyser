@@ -102,7 +102,7 @@ python SMA.py
 
 ## Contributing
 
-We welcome contributions from the community! If you would like to contribute, please fork the repository, create a new branch, and submit a pull request. Ensure that your code adheres to our coding standards and includes appropriate tests.
+If you would like to contribute, please fork the repository, create a new branch, and submit a pull request.
 
 ## License
 
