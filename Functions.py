@@ -1,7 +1,7 @@
 """
 Audio Signal Processing Script
 Author: Kosta Tournavitis
-Date: January 1, 2025
+Date: December 27, 2024
 
 This script contains various functions for processing and analyzing audio signals. It includes methods for evaluating the quality of audio signals using metrics such as LUFS, SNR, THD, and PEAQ, as well as spectral analysis and filtering. Additionally, it provides functions for adjusting the latency and volume of audio signals.
 
