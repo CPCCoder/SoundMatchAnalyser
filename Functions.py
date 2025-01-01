@@ -1,32 +1,3 @@
-"""
-Audio Signal Processing Script
-Author: Kosta Tournavitis
-Date: December 27, 2024
-
-This script contains various functions for processing and analyzing audio signals. It includes methods for evaluating the quality of audio signals using metrics such as LUFS, SNR, THD, and PEAQ, as well as spectral analysis and filtering. Additionally, it provides functions for adjusting the latency and volume of audio signals.
-
-Functions:
-- combined_score: Calculates a combined quality score from multiple metrics.
-- fft_bandpass_filter: Performs FFT bandpass filtering on an audio signal.
-- adjust_latency: Adjusts the latency of a reconstructed signal to match the original.
-- shift_audio: Shifts an audio signal by a certain number of samples.
-- convert_to_float: Converts audio data to floating point.
-- calculate_mse: Calculates the Mean Squared Error (MSE) between two audio signals.
-- calculate_lufs: Calculates the loudness of an audio signal in LUFS.
-- calc_best_latency: Finds the best latency to minimize MSE between two audio signals.
-- find_min_lufs_volume: Finds the optimal volume to minimize the LUFS difference.
-- find_min_lufs_combined: Combines latency and volume adjustments to minimize LUFS difference.
-- reduce_to_mono: Reduces stereo signals to mono.
-- peaq_score: Calculates the PEAQ score (Using PESQ) for two audio signals.
-- signal_to_noise_ratio: Calculates the Signal-to-Noise Ratio (SNR) between two audio signals.
-- total_harmonic_distortion: Calculates the Total Harmonic Distortion (THD) between two audio signals.
-- spectral_flatness: Calculates the spectral flatness of original and reconstructed audio signals.
-- spectral_centroid: Calculates the spectral centroid of original and reconstructed audio signals.
-- calculate_stats: Computes and returns various metrics to evaluate audio signals.
-
-This script is useful for analyzing and evaluating audio signals in various applications, including audio production, signal processing, and quality assurance.
-"""
-
 import numpy as np
 from scipy.io import wavfile
 from scipy import signal
@@ -37,12 +8,10 @@ import librosa
 import math
 
 def combined_score(lufs, scale, peaq, mse, snr, thd, flatness_diff, centroid_diff, original_flatness, original_centroid):
-    # Normalizing LUFS value
     lufs = max(lufs, -60)
     norm_lufs = 1.0-(lufs + 60) / 60
     norm_lufs = min(max(norm_lufs, 0.0), 1.0)
 
-    # Normalizing other metrics
     norm_scale = scale
     norm_scale = min(max(norm_scale, 0.0), 1.0)
 
@@ -64,7 +33,6 @@ def combined_score(lufs, scale, peaq, mse, snr, thd, flatness_diff, centroid_dif
     norm_centroid = 1 - math.pow(centroid_diff / 2000, 2)
     norm_centroid = min(max(norm_centroid, 0.0), 1.0)
     
-    # Defining weights for each metric
     weights = {
         "lufs": 0.25,
         "scale": 0.05,
@@ -76,7 +44,6 @@ def combined_score(lufs, scale, peaq, mse, snr, thd, flatness_diff, centroid_dif
         "centroid": 0.01
     }
 
-    # Calculating combined score using weighted sum of normalized metrics
     combined_score = (
         weights["lufs"] * norm_lufs +
         weights["scale"] * norm_scale +
@@ -93,27 +60,20 @@ def combined_score(lufs, scale, peaq, mse, snr, thd, flatness_diff, centroid_dif
     return combined_score
 
 def fft_bandpass_filter(signal, sr, lowcut, highcut):
-    # Perform FFT on the signal
     fft_spectrum = np.fft.fft(signal)
     frequencies = np.fft.fftfreq(len(fft_spectrum), 1/sr)
-    
-    # Zero out frequencies outside the desired band
     fft_spectrum[(frequencies < lowcut) | (frequencies > highcut)] = 0
-    
-    # Perform inverse FFT to get the filtered signal
     return np.real(np.fft.ifft(fft_spectrum))
 
 def adjust_latency(original, reconstructed, latency):
     if latency > 0:
-        # If latency is positive, pad the reconstructed signal at the beginning
         reconstructed = np.pad(reconstructed, (latency, 0), mode='constant')[:len(original)]
     elif latency < 0:
-        # If latency is negative, pad the original signal at the beginning
         original = np.pad(original, (-latency, 0), mode='constant')[:len(reconstructed)]
     return original, reconstructed
 
+# Function to shift the audio signal by a certain number of samples
 def shift_audio(audio, samples):
-    # Shift the audio signal by a certain number of samples
     if samples > 0:
         return np.pad(audio, (samples, 0), mode='constant')[:len(audio)]
     elif samples < 0:
@@ -122,7 +82,6 @@ def shift_audio(audio, samples):
         return audio
 
 def convert_to_float(data):
-    # Convert integer audio data to floating point
     if np.issubdtype(data.dtype, np.integer):
         if np.issubdtype(data.dtype, np.int16):
             return data.astype(np.float32) / 32768.0
@@ -135,21 +94,22 @@ def convert_to_float(data):
     else:
         raise ValueError("Unsupported data type")
 
+# MSE calculation
 def calculate_mse(audio1, audio2):
-    # Calculate Mean Squared Error between two audio signals
     return np.mean((audio1 - audio2) ** 2)
 
+# LUFS calculation
 def calculate_lufs(audio, rate):
-    # Calculate LUFS (Loudness Unit Full Scale) of the audio signal
-    meter = pyln.Meter(rate)
-    lufs  = meter.integrated_loudness(audio)
+    meter = pyln.Meter(rate)  # Create a LUFS meter
+    lufs  = meter.integrated_loudness(audio) 
     return lufs
 
+# Coarse and fine latency adjustment
 def calc_best_latency(amp, model, rate, max_latency_samples, coarse_step_size=10, fine_step_size=1):
     best_mse = calculate_mse(amp, model)
     best_latency = 0
     
-    # Coarse search to find the best latency
+    # Coarse search
     for latency in range(-max_latency_samples, max_latency_samples + 1, coarse_step_size):
         shifted_model = shift_audio(model, latency)
         mse = calculate_mse(amp, shifted_model)
@@ -172,6 +132,7 @@ def calc_best_latency(amp, model, rate, max_latency_samples, coarse_step_size=10
     
     return best_mse, best_latency
 
+# Iterative volume adjustment
 def find_min_lufs_volume(amp, model, rate, step_size=0.01, max_iters=1000):
     best_lufs = calculate_lufs(amp - model, rate)
     best_scale = 1.0
@@ -192,45 +153,114 @@ def find_min_lufs_volume(amp, model, rate, step_size=0.01, max_iters=1000):
             model = scale_down
             best_scale *= (1 - step_size)
         else:
-            break
+            break    
     return best_lufs, best_scale
 
 def find_min_lufs_combined(amp, model, rate, max_latency_samples=10000, volume_step_size=0.01, latency_step_size=1, max_volume_iters=1000):
     # Step 1: Adjust latency
     _, best_latency = calc_best_latency(amp, model, rate, max_latency_samples, latency_step_size*20)
     adjusted_model = shift_audio(model, best_latency)
-    
     # Step 2: Adjust volume
     best_lufs_volume, best_scale = find_min_lufs_volume(amp, adjusted_model, rate, volume_step_size, max_volume_iters)
     
     return best_lufs_volume, best_scale, best_latency
 
 def reduce_to_mono(audio):
-    # Reduce stereo audio to mono by averaging the two channels
-    if len(audio.shape) == 2:
+    if len(audio.shape) == 2: 
         audio = np.mean(audio, axis=1)
     return audio
 
 def peaq_score(original, reconstructed, sample_rate):
     if sample_rate != 16000: 
-        # Resample audio if the sample rate is not 16000 Hz
         original = signal.resample(original, int(len(original) * 16000 / sample_rate))
         reconstructed = signal.resample(reconstructed, int(len(reconstructed) * 16000 / sample_rate))
-        sample_rate = 16000
-    
-    # Calculate PEAQ score using PESQ
+        sample_rate = 16000    
     pesq_mos = pesq(sample_rate, original, reconstructed, 'wb') 
     return pesq_mos
 
 def signal_to_noise_ratio(original, reconstructed):
-    # Calculate Signal-to-Noise Ratio (SNR) between original and reconstructed audio
     signal_power = np.sum(original ** 2)
     noise_power = np.sum((original - reconstructed) ** 2)
     return 10 * np.log10(signal_power / noise_power)
 
 def total_harmonic_distortion(original, reconstructed):
-    # Calculate Total Harmonic Distortion (THD) between original and reconstructed audio
     original_harmonics = librosa.effects.harmonic(original)
     reconstructed_harmonics = librosa.effects.harmonic(reconstructed)
     residual = original_harmonics - reconstructed_harmonics
-    thd = np.sum(residual ** 2) / np.sum(original_h
+    thd = np.sum(residual ** 2) / np.sum(original_harmonics ** 2) * 100
+    return thd
+
+def spectral_flatness(original, reconstructed, sr, lowcut=20, highcut=20000):
+    original = fft_bandpass_filter(original, sr, lowcut, highcut)
+    reconstructed = fft_bandpass_filter(reconstructed, sr, lowcut, highcut)
+    original_flatness = librosa.feature.spectral_flatness(y=original).mean()
+    reconstructed_flatness = librosa.feature.spectral_flatness(y=reconstructed).mean()
+    return original_flatness, reconstructed_flatness
+
+def spectral_centroid_signal(signal, sr=48000, lowcut=20, highcut=20000):
+    filtered_signal = fft_bandpass_filter(signal, sr, lowcut, highcut)
+    return np.mean(librosa.feature.spectral_centroid(y=filtered_signal, sr=sr))
+
+def spectral_centroid(original, reconstructed, sr, lowcut=20, highcut=20000):
+    original_centroid = spectral_centroid_signal(original, sr=sr, lowcut=lowcut, highcut=highcut)
+    reconstructed_centroid = spectral_centroid_signal(reconstructed, sr=sr, lowcut=lowcut, highcut=highcut)
+    return original_centroid, reconstructed_centroid
+
+def calculate_stats(inputfile, outputfile, difffile):
+    amp_rate, amp_wav = wavfile.read(inputfile) 
+    rate, model_wav = wavfile.read(outputfile)
+     
+    amp_wav = convert_to_float(amp_wav)
+    model_wav = convert_to_float(model_wav)
+
+    amp_wav = reduce_to_mono(amp_wav)
+    model_wav = reduce_to_mono(model_wav)
+
+    if amp_rate != rate:
+        amp_wav = signal.resample(amp_wav, int(len(amp_wav) * rate / amp_rate))
+
+    diff = len(amp_wav) - len(model_wav)
+    if diff > 0:
+        amp_wav = amp_wav[diff:]
+    else:
+        model_wav = model_wav[-diff:]
+
+    amp = amp_wav.astype(np.float32)
+    model = model_wav.astype(np.float32)
+    best_lufs, best_scale, best_latency = find_min_lufs_combined(amp, model, rate, 5000)
+    peaq = peaq_score(amp, model, rate)
+
+    adjusted_model = model * best_scale
+    adjusted_model = np.roll(adjusted_model, best_latency)
+
+    if difffile != '':
+        difference = amp[:len(adjusted_model)] - adjusted_model
+        wavfile.write(difffile, rate, difference)
+
+    mse = calculate_mse(amp, adjusted_model)
+    snr = signal_to_noise_ratio(amp, adjusted_model)
+    thd = total_harmonic_distortion(amp, adjusted_model)
+    original_flatness, reconstructed_flatness = spectral_flatness(amp, adjusted_model, rate)
+    original_centroid, reconstructed_centroid = spectral_centroid(amp, adjusted_model, rate)
+
+    flatness_diff = reconstructed_flatness - original_flatness 
+    centroid_diff = reconstructed_centroid - original_centroid
+
+    combined = combined_score(best_lufs, best_scale, peaq, mse, snr, thd, flatness_diff, centroid_diff, original_flatness, original_centroid)
+
+    results = {
+        "best_lufs": best_lufs,
+        "best_scale": best_scale,
+        "best_latency": best_latency,
+        "peaq": peaq,
+        "mse": mse,
+        "snr": snr,
+        "thd": thd,
+        "original_flatness": original_flatness,
+        "reconstructed_flatness": reconstructed_flatness,
+        "original_centroid": original_centroid,
+        "reconstructed_centroid": reconstructed_centroid,
+        "combined_score": combined
+    }
+
+    return results
